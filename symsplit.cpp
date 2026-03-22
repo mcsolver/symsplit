@@ -39,10 +39,6 @@ std::chrono::time_point<std::chrono::steady_clock> START;
 
 enum Heuristic { min_max, min_product };
 
-/*******************************************************************************
-                             Command-line arguments
-*******************************************************************************/
-
 static char doc[] = "Find a maximum clique in a graph in DIMACS format\vHEURISTIC can be min_max or min_product";
 static char args_doc[] = "HEURISTIC FILENAME1 FILENAME2";
 static struct argp_option options[] = {
@@ -167,9 +163,6 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state) {
 
 static struct argp argp = { options, parse_opt, args_doc, doc };
 
-/*******************************************************************************
-                                     Stats
-*******************************************************************************/
 
 unsigned long long nodes{ 0 };
 unsigned long long cut_branches = 0;
@@ -179,10 +172,6 @@ bool g0_has_syms = false;
 bool g1_has_syms = false;
 unsigned int g0_pruned = 0;
 unsigned int g1_pruned = 0;
-
-/*******************************************************************************
-                                 MCS functions
-*******************************************************************************/
 
 struct VtxPair {
     int v;
@@ -338,8 +327,6 @@ int partition_sparse(vector<int>& all_vv, int start, int len, int degree, const 
 }
 
 auto test_time=0;
-
-// multiway is for directed and/or labelled graphs
 vector<Bidomain> filter_domains(const vector<Bidomain> & d, vector<int> & left,
         vector<int> & right, const Graph & g0, const Graph & g1, int v, int w, bool &best_match)
 {
@@ -375,13 +362,6 @@ vector<Bidomain> filter_domains(const vector<Bidomain> & d, vector<int> & left,
 }
 
 
-
-
-
-// returns the index of the smallest value in arr that is >w.
-// Assumption: such a value exists
-// Assumption: arr contains no duplicates
-// Assumption: arr has no values==INT_MAX
 int index_of_next_smallest(const vector<int>& arr, int start_idx, int len, int w) {
     int idx = -1;
     int smallest = INT_MAX;
@@ -462,14 +442,10 @@ void solve_with_sym(const Graph & g0, const Graph & g1, vector<VtxPair> & incumb
 
     if (abort_due_to_timeout) return;
 
-    //if (arguments.verbose) show(current, domains, left, right);
-
-
     if (current.size() > incumbent.size()) {
         incumbent = current;
         calls_for_optimal = nodes;
         duration = std::chrono::steady_clock::now() - START;
-        //if (!arguments.quiet) cout << "Incumbent size: " << incumbent.size() << endl;
     }
     nodes++;
 
@@ -478,17 +454,15 @@ void solve_with_sym(const Graph & g0, const Graph & g1, vector<VtxPair> & incumb
         cut_branches++;
         return;
     };
-    //if (arguments.big_first && incumbent.size()==matching_size_goal) return;
     int bd_idx = select_bidomain(domains, left, current.size());
 
-    if (bd_idx == -1)   // In the MCCS case, there may be nothing we can branch on
+    if (bd_idx == -1)
         return;
     Bidomain &bd = domains[bd_idx];
 
     int v = find_min_value(left, bd.l, bd.left_len);
     remove_vtx_from_left_domain(left, domains[bd_idx], v);
 
-    // Try assigning v to each vertex w in the colour class beginning at bd.r, in turn
     int w = -1, idx = -1;
     bd.right_len--;
 
@@ -512,11 +486,8 @@ void solve_with_sym(const Graph & g0, const Graph & g1, vector<VtxPair> & incumb
 
         right[bd.r + idx] = right[bd.r + bd.right_len];
         right[bd.r + bd.right_len] = w;
-        //auto stop1 = std::chrono::steady_clock::now();
 
         auto new_domains = filter_domains(domains, left, right, g0, g1, v, w,best_match);
-        //auto stop2 = std::chrono::steady_clock::now();
-        //test_time+=std::chrono::duration_cast<std::chrono::microseconds>(stop2-stop1).count();
         current.emplace_back(VtxPair(v, w));
         solve_with_sym(g0, g1, incumbent, current, new_domains, left, right, matching_size_goal,level+1);
         current.pop_back();
@@ -537,8 +508,8 @@ void solve_with_sym(const Graph & g0, const Graph & g1, vector<VtxPair> & incumb
 }
 
 vector<VtxPair> mcs(const Graph & g0, const Graph & g1) {
-    vector<int> left;  // the buffer of vertex indices for the left partitions
-    vector<int> right;  // the buffer of vertex indices for the right partitions
+    vector<int> left;
+    vector<int> right;
 
     auto domains = vector<Bidomain> {};
 
@@ -553,24 +524,17 @@ vector<VtxPair> mcs(const Graph & g0, const Graph & g1) {
                           std::end(right_labels),
                           std::inserter(labels, std::begin(labels)));
 
-    // Create a bidomain for each label that appears in both graphs
-    //for (unsigned int label : labels) {
         int start_l = left.size();
         int start_r = right.size();
 
         for (int i=0; i<g0.n; i++)
-            //if (g0.label[i]==label)
                 left.push_back(i);
         for (int i=0; i<g1.n; i++)
-            //if (g1.label[i]==label)
                 right.push_back(i);
-            
-        //cout<<label<<endl;
 
         int left_len = left.size() - start_l;
         int right_len = right.size() - start_r;
         domains.push_back({start_l, start_r, left_len, right_len, false});
-    //}
     
     vector<VtxPair> incumbent;
 
@@ -665,19 +629,11 @@ int main(int argc, char** argv) {
                 });
     }
 
-
-
     START = std::chrono::steady_clock::now();
     vector<int> g0_deg = calculate_degrees(g0);
     vector<int> g1_deg = calculate_degrees(g1);
     for(int i=0;i<g1.n;++i) index_right.push_back(i);
-    
-    // As implemented here, g1_dense and g0_dense are false for all instances
-    // in the Experimental Evaluation section of the paper.  Thus,
-    // we always sort the vertices in descending order of degree (or total degree,
-    // in the case of directed graphs.  Improvements could be made here: it would
-    // be nice if the program explored exactly the same search tree if both
-    // input graphs were complemented.
+
     vector<int> vv0(g0.n);
     std::iota(std::begin(vv0), std::end(vv0), 0);
     bool g1_dense = sum(g1_deg) < g1.n*(g1.n-1);
@@ -691,16 +647,10 @@ int main(int argc, char** argv) {
         return !g0_dense ? (g1_deg[a]<g1_deg[b]) : (g1_deg[a]>g1_deg[b]);
     });
 
-      // struct Graph g0_sorted(0), g1_sorted(0);
-   // if(g0.n<=g1.n){
-        	struct Graph g0_sorted = induced_subgraph(g0, vv0);
-    	struct Graph g1_sorted = induced_subgraph(g1, vv1);
-        //}else{
-//	g1_sorted = induced_subgraph(g0, vv0);
- //   	g0_sorted = induced_subgraph(g1, vv1);
-   //      }
-	//cout<<g0_sorted.n<<" "<<g1_sorted.n<<endl;
-    
+
+    struct Graph g0_sorted = induced_subgraph(g0, vv0);
+    struct Graph g1_sorted = induced_subgraph(g1, vv1);
+
     set_adjlist(g0_sorted);
     set_adjlist(g1_sorted);
 
@@ -708,10 +658,6 @@ int main(int argc, char** argv) {
         
     vector<VtxPair> solution = mcs(g0_sorted, g1_sorted);
 
-
-//    auto time_elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count();
-
-// Convert to indices from original, unsorted graphs
     for (auto& vtx_pair : solution) {
         vtx_pair.v = vv0[vtx_pair.v];
         vtx_pair.w = vv1[vtx_pair.w];
@@ -729,19 +675,6 @@ int main(int argc, char** argv) {
         timeout_thread.join();
     }
 
-//    if (!check_sol(g0, g1, solution))
-//        fail("*** Error: Invalid solution\n");
-
-    //cout << "Solution size " << solution.size() << std::endl;
-    //for (int i=0; i<g0.n; i++)
-    //    for (unsigned int j=0; j<solution.size(); j++)
-    //        if (solution[j].v == i)
-    //            cout << "(" << solution[j].v << " -> " << solution[j].w << ") ";
-   // cout << std::endl;
-
-   // cout << "Nodes:                      " << nodes << endl;
-   // cout << "CPU time (ms):              " << time_elapsed << endl;
-   // cout << "test_time (ms): "<<test_time<<endl;
     cout << solution.size() << ", " << check_sol(g0, g1, solution) << ", " << duration.count() << ", "
          << time_elapsed.count() << ", " << nodes << ", " << calls_for_optimal << ", " << cut_branches << ", "
          << g0_pruned << ", " << g1_pruned << ", " << aborted << endl;
