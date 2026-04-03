@@ -700,6 +700,12 @@ int main(int argc, char** argv) {
     cout << solution.size() << ", " << check_sol(g0, g1, solution) << ", " << duration.count() << ", "
          << time_elapsed.count() << ", " << nodes << ", " << calls_for_optimal << ", " << cut_branches << ", "
          << g0_pruned << ", " << g1_pruned << ", " << aborted << endl;
-    
+
+    for (size_t i = 0; i < solution.size(); i++) {
+        if (i > 0) cout << ", ";
+        cout << solution[i].v << " " << solution[i].w;
+    }
+    cout << endl;
+
 }
 

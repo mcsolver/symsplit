@@ -46,12 +46,25 @@ async def solve(
         if result.returncode != 0:
             return JSONResponse(status_code=500, content={"error": result.stderr})
 
-        # Parse CSV output: size, check_sol, time_to_optimal, elapsed, nodes, calls, cut, g0_pruned, g1_pruned, aborted
-        fields = [x.strip() for x in result.stdout.strip().split(",")]
+        # Parse output: line 1 is CSV stats, line 2 is the MCIS vertex mapping
+        lines = result.stdout.strip().splitlines()
+        fields = [x.strip() for x in lines[0].split(",")]
         keys = ["solution_size", "check_sol", "time_to_optimal", "elapsed",
                 "nodes", "calls_for_optimal", "cut_branches",
                 "g0_pruned", "g1_pruned", "aborted"]
-        return dict(zip(keys, fields))
+        d = dict(zip(keys, fields))
+        response = {k: v for k, v in d.items() if not k.startswith("g")}
+        response["pruned"] = [d.get("g0_pruned"), d.get("g1_pruned")]
+
+        g0_nodes, g1_nodes = [], []
+        if len(lines) > 1 and lines[1].strip():
+            for pair in lines[1].split(","):
+                v, w = pair.strip().split()
+                g0_nodes.append(int(v))
+                g1_nodes.append(int(w))
+        response["mapping"] = [g0_nodes, g1_nodes]
+
+        return response
 
     finally:
         os.unlink(f1_path)
