@@ -31,3 +31,5 @@ $ make test
 ./bin/run.o min_max ./data/tests/pattern ./data/tests/target -l -q -t 100
 7, 1, 2.1875e-05, 5.5167e-05, 244, 7, 159, 0, 18, 0
 ```
+
+curl -X POST http://localhost:8000/solve -F "graph1=@data/tests/pattern" -F "graph2=@data/tests/target" -F "heuristic=min_max" -F "format=lad" -F "timeout=100"
