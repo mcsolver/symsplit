@@ -19,7 +19,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <boost/functional/hash.hpp>
 
 using std::vector;
 using std::cout;
@@ -389,36 +388,59 @@ void remove_bidomain(vector<Bidomain>& domains, int idx) {
 
 std::vector<int>  g0_eqn_classes;
 std::vector<int>  g1_eqn_classes;
-int find_vertices_with_common_neighbors(const Graph& graph, std::vector<int> &eqn_classes) {
-    std::unordered_map<size_t, std::vector<unsigned int>> n_groups;
-    n_groups.reserve(graph.n);
-    eqn_classes = vector<int>(graph.n, -1);
-    for (unsigned int v = 0; v < (unsigned int)graph.n; ++v) {
-        std::size_t n_hash = 0, p_hash=0;
+bool have_identical_neighborhoods(const Graph& graph, ui u, ui v) {
+    if (graph.degree[u] != graph.degree[v])
+        return false;
 
-        for (unsigned int u = 0; u < (unsigned int)graph.n; ++u) {
-            if (v != u && graph.adjmat[v][u]) {
-                boost::hash_combine(n_hash, u);
-                boost::hash_combine(p_hash, u);
-            }
-            if (v == u) {
-                boost::hash_combine(p_hash, v);
-            }
-        }
-        n_groups[p_hash].push_back(v);
-        n_groups[n_hash].push_back(v);
+    if (graph.label[u] != graph.label[v]) {
+        return false;
     }
 
-    int n_syms = 0;
+    const auto& u_neighbors = graph.adjmat[u];
+    const auto& v_neighbors = graph.adjmat[v];
+
+    if (u_neighbors[v] != v_neighbors[u]) {
+        return false;
+    }
+
+    // Both neighbors should be sorted for efficient comparison
+    for (ui i = 0; i < static_cast<ui> (graph.n); ++i) {
+        if ((i != v && i != u) && u_neighbors[i] != v_neighbors[i]) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+int find_vertices_with_common_neighbors(const Graph& graph, std::vector<int>& eqn_classes) {
+    const ui graph_size = graph.n;
+    eqn_classes.assign(graph_size, -1);
+
     int label = 0;
-    for (const auto& batch : n_groups) {
-        if (batch.second.size() > 1) {
-            for (size_t i = 0; i < batch.second.size(); i++) {
+    int n_syms = 0;
+
+    for (ui i = 0; i < graph_size; ++i) {
+        if (eqn_classes[i] != -1) continue;
+
+        int n_syms_in_class = 0;
+
+        for (ui j = i + 1; j < graph_size; ++j) {
+            if (eqn_classes[j] != -1) continue;
+            if (graph.degree[i] != graph.degree[j] || graph.label[i] != graph.label[j]) continue;
+
+            // Use adjacency list intersection instead of matrix lookups
+            if (have_identical_neighborhoods(graph, i, j)) {
+                eqn_classes[j] = label;
                 n_syms++;
-                eqn_classes[batch.second[i]] = label;
+                n_syms_in_class++;
             }
         }
-        ++label;
+
+        if (n_syms_in_class > 0) {
+            eqn_classes[i] = label;
+            ++label;
+        }
     }
 
     return n_syms;
