@@ -1,3 +1,5 @@
+#pragma once
+
 #include <limits.h>
 #include <stdbool.h>
 
@@ -10,8 +12,8 @@ struct Graph {
     int n;
     std::vector<std::vector<unsigned int>> adjmat;
     std::vector<unsigned int> label;
-    unsigned int *degree;
-    unsigned int **adjlist;
+    unsigned int *degree   = nullptr;
+    unsigned int **adjlist = nullptr;
     Graph(unsigned int n);
 };
 

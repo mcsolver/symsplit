@@ -44,7 +44,7 @@ link_directories(${ARGP_LIBRARY_DIR})
 # --------------------------
 # EXECUTABLE
 # --------------------------
-add_executable(main symsplit.cpp graph.cpp graph.h)
+add_executable(main symsplit.cpp solver.cpp solver.h graph.cpp graph.h)
 
 # Link Boost + argp
 target_link_libraries(main
