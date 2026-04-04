@@ -546,17 +546,21 @@ vector<VtxPair> mcs(const Graph & g0, const Graph & g1) {
                           std::end(right_labels),
                           std::inserter(labels, std::begin(labels)));
 
+    for (unsigned int label : labels) {
         int start_l = left.size();
         int start_r = right.size();
 
         for (int i=0; i<g0.n; i++)
+            if (g0.label[i]==label)
                 left.push_back(i);
         for (int i=0; i<g1.n; i++)
+            if (g1.label[i]==label)
                 right.push_back(i);
 
         int left_len = left.size() - start_l;
         int right_len = right.size() - start_r;
         domains.push_back({start_l, start_r, left_len, right_len, false});
+    }
     
     vector<VtxPair> incumbent;
 

@@ -4,7 +4,7 @@
 #include <vector>
 
 using ui = unsigned int;
-//using std::cout; using std::endl; using std::vector;
+constexpr int BITS_PER_UNSIGNED_INT (CHAR_BIT * sizeof(unsigned int));
 
 struct Graph {
     int n;
