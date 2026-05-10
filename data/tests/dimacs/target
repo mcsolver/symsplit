@@ -1,4 +1,15 @@
 p edge 11 12
+n 1 N
+n 2 C
+n 3 N
+n 4 C
+n 5 C
+n 6 C
+n 7 N
+n 8 C
+n 9 N
+n 10 O
+n 11 N
 e 1 2
 e 2 3
 e 3 4
