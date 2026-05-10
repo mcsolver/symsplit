@@ -135,9 +135,9 @@ int main(int argc, char** argv) {
     argp_parse(&argp, argc, argv, 0, 0, 0);
 
     char format = arguments.dimacs ? 'D' : arguments.lad ? 'L' : 'B';
-    Graph g0 = readGraph(arguments.filename1, format, arguments.directed,
+    Graph g0 = read_graph(arguments.filename1, format, arguments.directed,
                          arguments.edge_labelled, arguments.vertex_labelled);
-    Graph g1 = readGraph(arguments.filename2, format, arguments.directed,
+    Graph g1 = read_graph(arguments.filename2, format, arguments.directed,
                          arguments.edge_labelled, arguments.vertex_labelled);
 
     SolverParams params;
