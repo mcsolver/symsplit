@@ -67,3 +67,5 @@ data/si
 data/generated
 cmake-build-debug/
 .DS_Store
+results/
+plots/
