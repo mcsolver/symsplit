@@ -308,7 +308,10 @@ static void solve_with_sym(SolverContext& ctx,
         current.emplace_back(VtxPair(v, w));
         solve_with_sym(ctx, g0, g1, incumbent, current, new_domains, left, right, matching_size_goal, level + 1);
         current.pop_back();
-        if (best_match || bound <= incumbent.size()) return;
+        // best_match (w splits no domain) means no other w can do better, so the
+        // rest of this node can be skipped. Not valid for connected MCS: a w with
+        // no neighbours leaves every domain non-adjacent, so nothing can extend it.
+        if ((best_match && !ctx.params.connected) || bound <= incumbent.size()) return;
     }
 
     bd.right_len++;
