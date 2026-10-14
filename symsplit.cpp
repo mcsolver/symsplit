@@ -158,12 +158,5 @@ int main(int argc, char** argv) {
          << result.stats.g0_pruned << ", "
          << result.stats.g1_pruned << ", "
          << result.stats.aborted << endl;
-
-    for (size_t i = 0; i < result.solution.size(); i++) {
-        if (i > 0) cout << ", ";
-        cout << result.solution[i].v << " " << result.solution[i].w;
-    }
-    cout << endl;
-
     return 0;
 }
