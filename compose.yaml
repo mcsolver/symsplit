@@ -1,0 +1,39 @@
+# Runs SymSplit and the RRSplit baseline on the same benchmarks with the same settings.
+#
+#   docker compose build
+#   docker compose run --rm symsplit      # results in ./results/symsplit
+#   docker compose run --rm rrsplit       # results in ./results/rrsplit
+#
+# Run the solvers one after another, not with `docker compose up`: running them
+# side by side makes them compete for CPU and skews the timing comparison.
+# Override the settings per run, e.g. `TIMEOUT=100 docker compose run --rm rrsplit`.
+
+x-experiment: &experiment
+  environment:
+    MCSP_HEURISTIC: ${MCSP_HEURISTIC:-min_max}
+    TIMEOUT: ${TIMEOUT:-10}
+    N_PARALLEL: ${N_PARALLEL:-4}
+
+services:
+  symsplit:
+    <<: *experiment
+    image: mcs-symsplit
+    build:
+      context: .
+      args:
+        REPO_URL: https://github.com/mcsolver/symsplit.git
+        REPO_REF: dev
+        SMOKE_TEST: make test-lad test-dimacs
+    volumes:
+      - ./results/symsplit:/app/results
+
+  rrsplit:
+    <<: *experiment
+    image: mcs-rrsplit
+    build:
+      context: .
+      args:
+        REPO_URL: https://github.com/BuddhiWathsala/rrsplit.git
+        REPO_REF: main
+    volumes:
+      - ./results/rrsplit:/app/results
