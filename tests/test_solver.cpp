@@ -133,8 +133,8 @@ TEST_CASE("find_vertices_with_common_neighbors: no symmetry in asymmetric graph"
 TEST_CASE("solve: DIMACS pair gives MCS of size 10", "[solve][dimacs]") {
     char p[] = "data/tests/dimacs/pattern";
     char t[] = "data/tests/dimacs/target";
-    Graph g0 = readGraph(p, 'D', false, false, false);
-    Graph g1 = readGraph(t, 'D', false, false, false);
+    Graph g0 = read_graph(p, 'D', false, false, false);
+    Graph g1 = read_graph(t, 'D', false, false, false);
 
     SolverParams params;
     params.timeout = 30;
@@ -147,8 +147,8 @@ TEST_CASE("solve: DIMACS pair gives MCS of size 10", "[solve][dimacs]") {
 TEST_CASE("solve: LAD pair gives MCS of size 7", "[solve][lad]") {
     char p[] = "data/tests/general/pattern";
     char t[] = "data/tests/general/target";
-    Graph g0 = readGraph(p, 'L', false, false, false);
-    Graph g1 = readGraph(t, 'L', false, false, false);
+    Graph g0 = read_graph(p, 'L', false, false, false);
+    Graph g1 = read_graph(t, 'L', false, false, false);
 
     SolverParams params;
     params.timeout = 30;
