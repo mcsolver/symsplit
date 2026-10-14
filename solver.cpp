@@ -324,6 +324,13 @@ static void solve_with_sym(SolverContext& ctx,
     solve_with_sym(ctx, g0, g1, incumbent, current, domains, left, right, matching_size_goal, level + 1);
 }
 
+// index_right[x] must be x's position in `right`; vertices absent from `right`
+// get -1 so partition_sparse never treats them as inside a domain.
+static void reset_index_right(vector<int>& index_right, const vector<int>& right) {
+    std::fill(index_right.begin(), index_right.end(), -1);
+    for (int i = 0; i < (int)right.size(); ++i) index_right[right[i]] = i;
+}
+
 static vector<VtxPair> mcs_internal(SolverContext& ctx, const Graph& g0, const Graph& g1) {
     vector<int> left, right;
     auto domains = vector<Bidomain>{};
@@ -346,6 +353,8 @@ static vector<VtxPair> mcs_internal(SolverContext& ctx, const Graph& g0, const G
         domains.push_back({start_l, start_r, (int)(left.size() - start_l), (int)(right.size() - start_r), false});
     }
 
+    reset_index_right(ctx.index_right, right);
+
     vector<VtxPair> incumbent;
 
     int g0_n_syms = find_vertices_with_common_neighbors(g0, ctx.g0_eqn_classes);
@@ -359,6 +368,7 @@ static vector<VtxPair> mcs_internal(SolverContext& ctx, const Graph& g0, const G
             auto left_copy        = left;
             auto right_copy       = right;
             auto domains_copy     = domains;
+            reset_index_right(ctx.index_right, right_copy);
             vector<VtxPair> current;
             solve_with_sym(ctx, g0, g1, incumbent, current, domains_copy, left_copy, right_copy, goal, 1);
             if (incumbent.size() == goal || ctx.abort_due_to_timeout) break;
