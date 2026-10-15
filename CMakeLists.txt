@@ -5,50 +5,43 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Enable sanitizers
-add_compile_options(-fsanitize=address)
-add_link_options(-fsanitize=address)
-
-# Debugging/profiling flags
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pg -O0")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg -O0")
-
-# Release optimization
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
-
-# --------------------------
-# BOOST
-# --------------------------
-set(BOOST_ROOT "/opt/homebrew/Cellar/boost/1.85.0")
-set(BOOST_INCLUDEDIR "${BOOST_ROOT}/include")
-set(BOOST_LIBRARYDIR "${BOOST_ROOT}/lib")
-
-find_package(Boost 1.85.0 REQUIRED COMPONENTS system filesystem)
-
-if(Boost_FOUND)
-    message(STATUS "Boost include dirs: ${Boost_INCLUDE_DIRS}")
-    message(STATUS "Boost libraries: ${Boost_LIBRARIES}")
-    include_directories(${Boost_INCLUDE_DIRS})
-    link_directories(${Boost_LIBRARY_DIRS})
+# AddressSanitizer is opt-in (-DENABLE_ASAN=ON). Homebrew LLVM's ASan runtime can
+# deadlock at startup on recent macOS; Apple clang (/usr/bin/clang++) works.
+option(ENABLE_ASAN "Build with AddressSanitizer" OFF)
+if(ENABLE_ASAN)
+    add_compile_options(-fsanitize=address -fno-omit-frame-pointer)
+    add_link_options(-fsanitize=address)
 endif()
 
-# --------------------------
-# ARGP
-# --------------------------
-set(ARGP_INCLUDE_DIR "/opt/homebrew/Cellar/argp-standalone/1.3/include")
-set(ARGP_LIBRARY_DIR "/opt/homebrew/Cellar/argp-standalone/1.3/lib")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
-include_directories(${ARGP_INCLUDE_DIR})
-link_directories(${ARGP_LIBRARY_DIR})
+find_package(Threads REQUIRED)
+
+# --------------------------
+# ARGP (glibc provides it on Linux; macOS needs `brew install argp-standalone`)
+# --------------------------
+if(APPLE)
+    execute_process(COMMAND brew --prefix argp-standalone
+            OUTPUT_VARIABLE ARGP_BREW_PREFIX
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_QUIET)
+    find_path(ARGP_INCLUDE_DIR argp.h
+            HINTS ${ARGP_BREW_PREFIX}/include /opt/homebrew/include /usr/local/include)
+    find_library(ARGP_LIBRARY argp
+            HINTS ${ARGP_BREW_PREFIX}/lib /opt/homebrew/lib /usr/local/lib)
+    if(NOT ARGP_INCLUDE_DIR OR NOT ARGP_LIBRARY)
+        message(FATAL_ERROR "argp not found. Run: brew install argp-standalone")
+    endif()
+endif()
 
 # --------------------------
 # EXECUTABLE
 # --------------------------
-add_executable(main symsplit.cpp graph.cpp graph.h)
+add_executable(main symsplit.cpp solver.cpp solver.h graph.cpp graph.h)
+target_link_libraries(main PRIVATE Threads::Threads)
 
-# Link Boost + argp
-target_link_libraries(main
-        PRIVATE
-        ${Boost_LIBRARIES}
-        argp
-)
+if(APPLE)
+    target_include_directories(main PRIVATE ${ARGP_INCLUDE_DIR})
+    target_link_libraries(main PRIVATE ${ARGP_LIBRARY})
+endif()
