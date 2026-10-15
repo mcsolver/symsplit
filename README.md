@@ -26,9 +26,10 @@ for git and are downloaded from [mcs-data](https://github.com/BuddhiWathsala/mcs
 - On Docker Desktop, give Docker enough CPUs (Settings → Resources) for the number of parallel runs you choose.
 
 ## How it works
-[`compose.yaml`](compose.yaml) defines one service per solver, both built from the same [`Dockerfile`](Dockerfile).
+[`compose.yaml`](compose.yaml) defines one service per solver, all built from the same [`Dockerfile`](Dockerfile).
 Building an image:
-1. clones the solver's repository at the commit set by `REPO_REF`,
+1. clones the solver's repository at the commit set by `REPO_REF` and adds this project's `run.sh` and
+   `indicators/`,
 2. downloads `data.zip`, checks its SHA-256 and unpacks it into `data/`,
 3. compiles the solver and runs a quick test.
 
@@ -44,8 +45,28 @@ docker compose run --rm symsplit     # results in results/symsplit/
 docker compose run --rm rrsplit      # results in results/rrsplit/
 ```
 
-Run the two solvers one after the other. `docker compose up` starts both at once, and they then compete for
+Run the solvers one after the other. `docker compose up` starts them all at once, and they then compete for
 CPU, which skews the timing comparison.
+
+The other baselines run the same way, each writing to `results/<service>/`:
+
+```shell
+docker compose run --rm mcsplit      # results in results/mcsplit/
+```
+
+| Service | Repository | Branch |
+|---|---|---|
+| `mcsplit` | [BuddhiWathsala/mcsplit-v1](https://github.com/BuddhiWathsala/mcsplit-v1) | `main` |
+| `mcsplit-dsb` | [BuddhiWathsala/mcsplit-dsb](https://github.com/BuddhiWathsala/mcsplit-dsb) | `main` |
+| `mcsplit-rl` | [BuddhiWathsala/mcsplit-rl-pvt](https://github.com/BuddhiWathsala/mcsplit-rl-pvt) | `main` |
+| `mcsplit-rl-dsb` | [BuddhiWathsala/mcsplit-rl-pvt](https://github.com/BuddhiWathsala/mcsplit-rl-pvt) | `new-bound-for-symsplit` |
+| `mcsplit-ll` | [BuddhiWathsala/mcsplit-ll-pvt](https://github.com/BuddhiWathsala/mcsplit-ll-pvt) | `main-for-symsplit` |
+| `mcsplit-ll-dsb` | [BuddhiWathsala/mcsplit-ll-pvt](https://github.com/BuddhiWathsala/mcsplit-ll-pvt) | `new-bound-for-symsplit` |
+| `mcsplit-dal` | [BuddhiWathsala/mcsplit-dal](https://github.com/BuddhiWathsala/mcsplit-dal) | `main-for-symsplit` |
+| `mcsplit-dal-dsb` | [BuddhiWathsala/mcsplit-dal](https://github.com/BuddhiWathsala/mcsplit-dal) | `new-bound-for-sym` |
+
+Every image runs this project's [`run.sh`](run.sh) on this project's `indicators/`, whatever the solver's
+repository contains, so all solvers are measured on the same instances in the same way.
 
 ## Settings
 Set these as environment variables when running:
@@ -61,7 +82,7 @@ TIMEOUT=1800 N_PARALLEL=8 docker compose run --rm symsplit
 TIMEOUT=1800 N_PARALLEL=8 docker compose run --rm rrsplit
 ```
 
-Use the same settings for both solvers so that their results are comparable.
+Use the same settings for every solver so that their results are comparable.
 
 ## Results
 Each run writes `results/<solver>/<DATASET>_<MCSP_HEURISTIC>_<TIMEOUT>.txt`, for example
@@ -104,7 +125,7 @@ commit hash so that results are tied to exact code, and change the hash to pick 
 To force a complete rebuild:
 
 ```shell
-docker compose build --no-cache --pull           # both images
+docker compose build --no-cache --pull           # all images
 docker compose build --no-cache --pull symsplit  # one image
 ```
 

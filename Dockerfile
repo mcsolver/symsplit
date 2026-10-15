@@ -1,8 +1,9 @@
 # syntax=docker/dockerfile:1
 #
-# Reproduces the MCS experiments (BI, CV, LV, SI) for any solver repository that
-# follows the run.sh + indicators/ layout (SymSplit, RRSplit). End to end it:
-#   1. clones REPO_URL at REPO_REF
+# Reproduces the MCS experiments (BI, CV, LV, SI) for any McSplit-style solver whose
+# `make build` produces bin/run.o (SymSplit, RRSplit and the McSplit baselines). End to end it:
+#   1. clones REPO_URL at REPO_REF and adds this project's run.sh and indicators/, so every
+#      solver runs the same instances in the same way
 #   2. downloads the benchmark graphs (too large for git) from DATA_URL
 #   3. builds the solver and runs SMOKE_TEST
 #   4. at run time, writes configs/run.env from the environment and runs run.sh
@@ -25,11 +26,12 @@ RUN apt-get update \
 ARG REPO_URL=https://github.com/mcsolver/symsplit.git
 ARG REPO_REF=main
 WORKDIR /app
-RUN git clone "$REPO_URL" . \
+RUN GIT_TERMINAL_PROMPT=0 git clone "$REPO_URL" . \
  && git checkout "$REPO_REF" \
  && git log -1 --format='Building commit %H (%s)' \
- && test -f run.sh && test -d indicators \
- || { echo "run.sh or indicators/ missing at $REPO_REF; is it pushed?"; exit 1; }
+ || { echo "Cannot clone $REPO_URL at $REPO_REF; is it public and pushed?"; exit 1; }
+COPY --chmod=755 run.sh ./run.sh
+COPY indicators/ ./indicators/
 
 # 2. Fetch the benchmark data (hosted in github.com/BuddhiWathsala/mcs-data).
 #    data.zip has a top-level data/ folder, so it is unpacked over the repo's data/.

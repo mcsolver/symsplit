@@ -1,8 +1,9 @@
-# Runs SymSplit and the RRSplit baseline on the same benchmarks with the same settings.
+# Runs SymSplit and the baselines on the same benchmarks with the same settings.
 #
 #   docker compose build
 #   docker compose run --rm symsplit      # results in ./results/symsplit
 #   docker compose run --rm rrsplit       # results in ./results/rrsplit
+#   docker compose run --rm mcsplit-dsb   # likewise for every other service below
 #
 # Run the solvers one after another, not with `docker compose up`: running them
 # side by side makes them compete for CPU and skews the timing comparison.
@@ -37,3 +38,91 @@ services:
         REPO_REF: main
     volumes:
       - ./results/rrsplit:/app/results
+
+  mcsplit:
+    <<: *experiment
+    image: mcs-mcsplit
+    build:
+      context: .
+      args:
+        REPO_URL: https://github.com/BuddhiWathsala/mcsplit-v1.git
+        REPO_REF: main
+    volumes:
+      - ./results/mcsplit:/app/results
+
+  mcsplit-dsb:
+    <<: *experiment
+    image: mcs-mcsplit-dsb
+    build:
+      context: .
+      args:
+        REPO_URL: https://github.com/BuddhiWathsala/mcsplit-dsb.git
+        REPO_REF: main
+    volumes:
+      - ./results/mcsplit-dsb:/app/results
+
+  mcsplit-rl:
+    <<: *experiment
+    image: mcs-mcsplit-rl
+    build:
+      context: .
+      args:
+        REPO_URL: https://github.com/BuddhiWathsala/mcsplit-rl-pvt.git
+        REPO_REF: main
+    volumes:
+      - ./results/mcsplit-rl:/app/results
+
+  mcsplit-rl-dsb:
+    <<: *experiment
+    image: mcs-mcsplit-rl-dsb
+    build:
+      context: .
+      args:
+        REPO_URL: https://github.com/BuddhiWathsala/mcsplit-rl-pvt.git
+        REPO_REF: new-bound-for-symsplit
+    volumes:
+      - ./results/mcsplit-rl-dsb:/app/results
+
+  mcsplit-ll:
+    <<: *experiment
+    image: mcs-mcsplit-ll
+    build:
+      context: .
+      args:
+        REPO_URL: https://github.com/BuddhiWathsala/mcsplit-ll-pvt.git
+        REPO_REF: main-for-symsplit
+    volumes:
+      - ./results/mcsplit-ll:/app/results
+
+  mcsplit-ll-dsb:
+    <<: *experiment
+    image: mcs-mcsplit-ll-dsb
+    build:
+      context: .
+      args:
+        REPO_URL: https://github.com/BuddhiWathsala/mcsplit-ll-pvt.git
+        REPO_REF: new-bound-for-symsplit
+    volumes:
+      - ./results/mcsplit-ll-dsb:/app/results
+
+  mcsplit-dal:
+    <<: *experiment
+    image: mcs-mcsplit-dal
+    build:
+      context: .
+      args:
+        REPO_URL: https://github.com/BuddhiWathsala/mcsplit-dal.git
+        REPO_REF: main-for-symsplit
+    volumes:
+      - ./results/mcsplit-dal:/app/results
+
+  mcsplit-dal-dsb:
+    <<: *experiment
+    image: mcs-mcsplit-dal-dsb
+    build:
+      context: .
+      args:
+        REPO_URL: https://github.com/BuddhiWathsala/mcsplit-dal.git
+        REPO_REF: new-bound-for-sym
+    volumes:
+      - ./results/mcsplit-dal-dsb:/app/results
