@@ -1,9 +1,10 @@
-"""Scatter and cumulative (cactus) plots comparing RRSplit and SymSplit results.
+"""Scatter, cumulative (cactus) and size difference plots comparing RRSplit and SymSplit results.
 
 Reads results/<solver>/<DATASET>_<heuristic>_<timeout>.txt as written by run.sh
 (see compose.yaml) and writes, per dataset and for all datasets combined:
   scatter_<metric>_<name>.pdf   RRSplit vs SymSplit time per instance (log-log)
   cactus_<name>.pdf             instances solved within t seconds
+  size_delta_<name>.pdf         SymSplit size - RRSplit size on hard instances where they differ
   *.txt                         the same points as pgfplots coordinates
 
 Usage:
@@ -13,11 +14,13 @@ Usage:
 import argparse
 import os
 from bisect import bisect_right
+from collections import Counter
 
 import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 
 # Columns shared by both solvers' output lines.
 SIZE = 2
@@ -162,6 +165,37 @@ def plot_cactus(name, pairs, args):
     plt.close(fig)
 
 
+def plot_size_delta(name, pairs, args):
+    """Frequency of SymSplit size - RRSplit size on hard instances (both timed out) where they differ."""
+    deltas = [int(s[SIZE]) - int(r[SIZE]) for r, s in pairs
+              if not solved(r) and not solved(s) and r[SIZE] != s[SIZE]]
+    if not deltas:
+        return
+    counts = sorted(Counter(deltas).items())
+    larger = sum(1 for d in deltas if d > 0)
+    print(f"  {name}: SymSplit larger on {larger} of {len(deltas)} hard instances with different sizes "
+          f"(delta mean {sum(deltas) / len(deltas):.2f}, min {min(deltas)}, max {max(deltas)})")
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+    for color, label, keep in (("C0", "SymSplit larger", lambda d: d > 0),
+                               ("C1", "RRSplit larger", lambda d: d < 0)):
+        bars = [(d, c) for d, c in counts if keep(d)]
+        if bars:
+            ax.bar([d for d, _ in bars], [c for _, c in bars], color=color, edgecolor="black", label=label)
+    ax.axvline(0, color="grey", linewidth=1)
+    ax.set(xlabel="SymSplit size - RRSplit size (vertices)", ylabel="Number of instances",
+           title=f"{name}: common subgraph size difference on hard instances")
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+    ax.legend()
+    ax.grid(axis="y", alpha=0.3)
+    fig.tight_layout()
+    base = os.path.join(args.out, f"size_delta_{name}")
+    fig.savefig(base + ".pdf")
+    fig.savefig(base + ".png", dpi=150)
+    plt.close(fig)
+    write_coordinates(base + ".txt", counts)
+
+
 def plot_all(name, pairs, args):
     if not pairs:
         return
@@ -169,6 +203,7 @@ def plot_all(name, pairs, args):
     for metric in METRICS:
         plot_scatter(name, pairs, metric, args)
     plot_cactus(name, pairs, args)
+    plot_size_delta(name, pairs, args)
 
 
 def main():

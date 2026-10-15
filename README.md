@@ -146,10 +146,29 @@ For each dataset, and for all datasets combined (`ALL`), it writes to `plots/`:
   log scales. Points below the dashed `x = y` line are instances where SymSplit was faster. Timed-out runs are
   plotted at the timeout; instances neither solver finished are left out.
 - `cactus_*`: number of instances solved within each time, for finding the optimum and for completing the search.
+- `size_delta_*`: on hard instances (both solvers hit the timeout) where the sizes differ, how many instances
+  have each SymSplit size − RRSplit size. Bars right of 0 are instances where SymSplit found the larger
+  common subgraph.
 - `.pdf` and `.png` versions of each plot, and `.txt` files with the points as pgfplots coordinates.
 
 It also prints, per dataset, how often SymSplit was faster, equal or slower, how many instances each solver
 solved, and any instance where both solvers finished but report different solution sizes.
+
+## Summary tables
+[`scripts/result_tables.py`](scripts/result_tables.py) prints three tables, per dataset and for all combined. It
+needs only Python 3.9+ and takes the same `--timeout`, `--heuristic`, `--datasets` and `--results` options.
+
+```shell
+python scripts/result_tables.py --timeout 1800
+```
+
+- **Larger common subgraph:** on hard instances (both solvers hit the timeout), the percentage where the two
+  sizes differ and, among those, the percentage where SymSplit or RRSplit found the larger common subgraph.
+- **Speedup:** average and maximum of RRSplit time / SymSplit time over instances where SymSplit completed
+  faster. Only instances that at least one solver completed and that at least one solver needed `--min-time`
+  seconds (default 10) for are counted.
+- **Symmetry pruning:** mean and standard deviation of branches pruned by symmetry as a percentage of branches
+  pruned by the bound, and the percentage of instances where symmetry pruned more than the bound.
 
 # Building and running locally
 ## Prerequisites
