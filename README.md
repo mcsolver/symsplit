@@ -26,9 +26,10 @@ for git and are downloaded from [mcs-data](https://github.com/BuddhiWathsala/mcs
 - On Docker Desktop, give Docker enough CPUs (Settings → Resources) for the number of parallel runs you choose.
 
 ## How it works
-[`compose.yaml`](compose.yaml) defines one service per solver, both built from the same [`Dockerfile`](Dockerfile).
+[`compose.yaml`](compose.yaml) defines one service per solver, all built from the same [`Dockerfile`](Dockerfile).
 Building an image:
-1. clones the solver's repository at the commit set by `REPO_REF`,
+1. clones the solver's repository at the commit set by `REPO_REF` and adds this project's `run.sh` and
+   `indicators/`,
 2. downloads `data.zip`, checks its SHA-256 and unpacks it into `data/`,
 3. compiles the solver and runs a quick test.
 
@@ -44,8 +45,28 @@ docker compose run --rm symsplit     # results in results/symsplit/
 docker compose run --rm rrsplit      # results in results/rrsplit/
 ```
 
-Run the two solvers one after the other. `docker compose up` starts both at once, and they then compete for
+Run the solvers one after the other. `docker compose up` starts them all at once, and they then compete for
 CPU, which skews the timing comparison.
+
+The other baselines run the same way, each writing to `results/<service>/`:
+
+```shell
+docker compose run --rm mcsplit      # results in results/mcsplit/
+```
+
+| Service | Repository | Branch |
+|---|---|---|
+| `mcsplit` | [BuddhiWathsala/mcsplit-v1](https://github.com/BuddhiWathsala/mcsplit-v1) | `main` |
+| `mcsplit-dsb` | [BuddhiWathsala/mcsplit-dsb](https://github.com/BuddhiWathsala/mcsplit-dsb) | `main` |
+| `mcsplit-rl` | [BuddhiWathsala/mcsplit-rl-pvt](https://github.com/BuddhiWathsala/mcsplit-rl-pvt) | `main` |
+| `mcsplit-rl-dsb` | [BuddhiWathsala/mcsplit-rl-pvt](https://github.com/BuddhiWathsala/mcsplit-rl-pvt) | `new-bound-for-symsplit` |
+| `mcsplit-ll` | [BuddhiWathsala/mcsplit-ll-pvt](https://github.com/BuddhiWathsala/mcsplit-ll-pvt) | `main-for-symsplit` |
+| `mcsplit-ll-dsb` | [BuddhiWathsala/mcsplit-ll-pvt](https://github.com/BuddhiWathsala/mcsplit-ll-pvt) | `new-bound-for-symsplit` |
+| `mcsplit-dal` | [BuddhiWathsala/mcsplit-dal](https://github.com/BuddhiWathsala/mcsplit-dal) | `main-for-symsplit` |
+| `mcsplit-dal-dsb` | [BuddhiWathsala/mcsplit-dal](https://github.com/BuddhiWathsala/mcsplit-dal) | `new-bound-for-sym` |
+
+Every image runs this project's [`run.sh`](run.sh) on this project's `indicators/`, whatever the solver's
+repository contains, so all solvers are measured on the same instances in the same way.
 
 ## Settings
 Set these as environment variables when running:
@@ -61,7 +82,7 @@ TIMEOUT=1800 N_PARALLEL=8 docker compose run --rm symsplit
 TIMEOUT=1800 N_PARALLEL=8 docker compose run --rm rrsplit
 ```
 
-Use the same settings for both solvers so that their results are comparable.
+Use the same settings for every solver so that their results are comparable.
 
 ## Results
 Each run writes `results/<solver>/<DATASET>_<MCSP_HEURISTIC>_<TIMEOUT>.txt`, for example
@@ -104,7 +125,7 @@ commit hash so that results are tied to exact code, and change the hash to pick 
 To force a complete rebuild:
 
 ```shell
-docker compose build --no-cache --pull           # both images
+docker compose build --no-cache --pull           # all images
 docker compose build --no-cache --pull symsplit  # one image
 ```
 
@@ -146,10 +167,47 @@ For each dataset, and for all datasets combined (`ALL`), it writes to `plots/`:
   log scales. Points below the dashed `x = y` line are instances where SymSplit was faster. Timed-out runs are
   plotted at the timeout; instances neither solver finished are left out.
 - `cactus_*`: number of instances solved within each time, for finding the optimum and for completing the search.
+- `size_delta_*`: on hard instances (both solvers hit the timeout) where the sizes differ, how many instances
+  have each SymSplit size − RRSplit size. Bars right of 0 are instances where SymSplit found the larger
+  common subgraph.
 - `.pdf` and `.png` versions of each plot, and `.txt` files with the points as pgfplots coordinates.
 
 It also prints, per dataset, how often SymSplit was faster, equal or slower, how many instances each solver
 solved, and any instance where both solvers finished but report different solution sizes.
+
+## All baselines
+[`scripts/plot_baselines.py`](scripts/plot_baselines.py) draws one cumulative plot with a line per solver, for
+every solver in `results/` (SymSplit, RRSplit and the McSplit baselines; a `+DSB` variant is dashed in the
+colour of its baseline). It takes the same options as `plot_results.py`, plus:
+
+| Option | Default | Meaning |
+|---|---|---|
+| `--metric` | `completion` | `completion` (time to finish the search) or `optimum` (time to find the best solution) |
+| `--min-time` | `10` | Leave out instances every solver completed in less time (s) |
+
+```shell
+python scripts/plot_baselines.py --timeout 1800
+```
+
+Only instances every solver has results for are counted, so the plots fill in as the experiments progress. A run
+that completes with a smaller solution than another solver found is reported as a wrong answer and not counted.
+It writes `baselines_<metric>_<DATASET>.pdf`/`.png` and `ALL`, plus one pgfplots `.txt` file per solver.
+
+## Summary tables
+[`scripts/result_tables.py`](scripts/result_tables.py) prints three tables, per dataset and for all combined. It
+needs only Python 3.9+ and takes the same `--timeout`, `--heuristic`, `--datasets` and `--results` options.
+
+```shell
+python scripts/result_tables.py --timeout 1800
+```
+
+- **Larger common subgraph:** on hard instances (both solvers hit the timeout), the percentage where the two
+  sizes differ and, among those, the percentage where SymSplit or RRSplit found the larger common subgraph.
+- **Speedup:** average and maximum of RRSplit time / SymSplit time over instances where SymSplit completed
+  faster. Only instances that at least one solver completed and that at least one solver needed `--min-time`
+  seconds (default 10) for are counted.
+- **Symmetry pruning:** mean and standard deviation of branches pruned by symmetry as a percentage of branches
+  pruned by the bound, and the percentage of instances where symmetry pruned more than the bound.
 
 # Building and running locally
 ## Prerequisites
