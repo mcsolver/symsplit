@@ -1,10 +1,26 @@
 # SymSplit
 New symmetry aware algorithm for maximum common subgraph problem.
 
+- [Getting the code](#getting-the-code)
 - [Reproducing the experiments](#reproducing-the-experiments) — Docker, no local build needed
 - [Plotting the results](#plotting-the-results) — Python
 - [Building and running locally](#building-and-running-locally) — C++
 - [Python API](docs/python-api.md) and [baselines](docs/baselines.md)
+
+# Getting the code
+The code, experiment setup and scripts are at <https://github.com/mcsolver/symsplit>. Clone it with
+[git](https://git-scm.com/downloads) and run every command in this README from the repository root:
+
+```shell
+git clone https://github.com/mcsolver/symsplit.git
+cd symsplit
+```
+
+Without git, download <https://github.com/mcsolver/symsplit/archive/refs/heads/main.zip>, unzip it and `cd`
+into the `symsplit-main` folder.
+
+The benchmark graphs are not in the repository. The Docker build downloads them (see below); to run without
+Docker, download them as described in [Running](#running).
 
 # Reproducing the experiments
 The experiments compare SymSplit with the RRSplit baseline on four benchmark families:
@@ -263,8 +279,12 @@ Usage: `./bin/run.o HEURISTIC PATTERN TARGET [options]`, where `HEURISTIC` is `m
 | `-x`, `--vertex-labelled-only` | Use vertex labels only |
 | `-b`, `--big-first` | Try an induced subgraph isomorphism first, then decrease the target size |
 
-To run the experiments without Docker, put the benchmark graphs in `data/`, then:
+To run the experiments without Docker, first download the benchmark graphs into `data/` (the archive's
+SHA-256 is `5ad4332924186acd6fd5ca9e38577e2556d8e4f3ae6f7867e4c9c04a5e15941d`), then run `run.sh`:
 ```shell
+$ curl -fL -o data.zip https://raw.githubusercontent.com/BuddhiWathsala/mcs-data/main/data.zip
+$ shasum -a 256 data.zip        # sha256sum on Linux
+$ unzip -q -o data.zip -x '__MACOSX/*' && rm data.zip
 $ mkdir -p configs results
 $ printf 'MCSP_HEURISTIC=min_max\nTIMEOUT=10\nN_PARALLEL=4\n' > configs/run.env
 $ ./run.sh
