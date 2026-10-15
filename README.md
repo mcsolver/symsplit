@@ -175,6 +175,24 @@ For each dataset, and for all datasets combined (`ALL`), it writes to `plots/`:
 It also prints, per dataset, how often SymSplit was faster, equal or slower, how many instances each solver
 solved, and any instance where both solvers finished but report different solution sizes.
 
+## All baselines
+[`scripts/plot_baselines.py`](scripts/plot_baselines.py) draws one cumulative plot with a line per solver, for
+every solver in `results/` (SymSplit, RRSplit and the McSplit baselines; a `+DSB` variant is dashed in the
+colour of its baseline). It takes the same options as `plot_results.py`, plus:
+
+| Option | Default | Meaning |
+|---|---|---|
+| `--metric` | `completion` | `completion` (time to finish the search) or `optimum` (time to find the best solution) |
+| `--min-time` | `10` | Leave out instances every solver completed in less time (s) |
+
+```shell
+python scripts/plot_baselines.py --timeout 1800
+```
+
+Only instances every solver has results for are counted, so the plots fill in as the experiments progress. A run
+that completes with a smaller solution than another solver found is reported as a wrong answer and not counted.
+It writes `baselines_<metric>_<DATASET>.pdf`/`.png` and `ALL`, plus one pgfplots `.txt` file per solver.
+
 ## Summary tables
 [`scripts/result_tables.py`](scripts/result_tables.py) prints three tables, per dataset and for all combined. It
 needs only Python 3.9+ and takes the same `--timeout`, `--heuristic`, `--datasets` and `--results` options.
